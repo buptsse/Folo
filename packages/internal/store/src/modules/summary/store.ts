@@ -143,10 +143,12 @@ class SummarySyncService {
     entryId,
     target,
     actionLanguage,
+    tokenConfig,
   }: {
     entryId: string
     target: "content" | "readabilityContent"
     actionLanguage: SupportedActionLanguage
+    tokenConfig?: { apiKey?: string; baseURL?: string; model?: string }
   }): Promise<string | null> {
     const entry = getEntry(entryId)
     if (!entry) return null
@@ -168,13 +170,61 @@ class SummarySyncService {
       state.generatingStatus[statusID] = SummaryGeneratingStatus.Pending
     })
 
-    // Use Our AI to generate summary
-    const pendingPromise = api()
-      .ai.summary({
-        id: entryId,
-        language: actionLanguage,
-        target,
-      })
+    // Use Iflow API to generate summary
+    const fetchSummary = async () => {
+      const apiKey = tokenConfig?.apiKey
+      const baseURL = tokenConfig?.baseURL
+      const model = tokenConfig?.model || "deepseek-v3.2"
+
+      if (!apiKey || !baseURL) {
+        throw new Error("Missing AI Token Configuration (APK Key or Base URL)")
+      }
+
+      try {
+        const content =
+          target === "content"
+            ? entry.content
+            : entry.readabilityContent || entry.content
+
+        const response = await fetch(`${baseURL}/chat/completions`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({
+            model: model,
+            messages: [
+              {
+                role: "system",
+                content: `You are a helpful assistant that summarizes articles. Please summarize the following content in ${
+                  actionLanguage || "the same language as the content"
+                }.`,
+              },
+              {
+                role: "user",
+                content: content || "",
+              },
+            ],
+            stream: false,
+          }),
+        })
+
+        if (!response.ok) {
+          throw new Error(`Iflow API error: ${response.statusText}`)
+        }
+
+        const data = await response.json()
+        const summaryText = data.choices?.[0]?.message?.content || ""
+
+        return { data: summaryText }
+      } catch (error) {
+        console.error("Iflow API error:", error)
+        throw error
+      }
+    }
+
+    const pendingPromise = fetchSummary()
       .then((summary) => {
         immerSet((state) => {
           if (!state.data[entryId]) {

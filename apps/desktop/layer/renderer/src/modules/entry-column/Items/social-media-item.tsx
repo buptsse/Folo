@@ -3,13 +3,16 @@ import { AutoResizeHeight } from "@follow/components/ui/auto-resize-height/index
 import { Skeleton } from "@follow/components/ui/skeleton/index.jsx"
 import { useIsEntryStarred } from "@follow/store/collection/hooks"
 import { useEntry } from "@follow/store/entry/hooks"
+import { useEntryTranslation } from "@follow/store/translation/hooks"
+import { translationSyncService } from "@follow/store/translation/store"
 import { useFeedById } from "@follow/store/feed/hooks"
 import { LRUCache } from "@follow/utils/lru-cache"
 import { cn } from "@follow/utils/utils"
 import { useLayoutEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 
-import { useGeneralSettingKey } from "~/atoms/settings/general"
+import { useAISettingValue } from "~/atoms/settings/ai"
+import { useActionLanguage, useGeneralSettingKey } from "~/atoms/settings/general"
 import { RelativeTime } from "~/components/ui/datetime"
 import { HTML } from "~/components/ui/markdown/HTML"
 import { Media } from "~/components/ui/media/Media"
@@ -27,7 +30,7 @@ import { readableContentMaxWidth } from "../styles"
 import type { EntryItemStatelessProps, EntryListItemFC } from "../types"
 import { MediaGallery } from "./media-gallery"
 
-export const SocialMediaItem: EntryListItemFC = ({ entryId, translation }) => {
+export const SocialMediaItem: EntryListItemFC = ({ entryId, translation: propTranslation }) => {
   const entry = useEntry(entryId, (state) => {
     /// keep-sorted
     const {
@@ -65,6 +68,33 @@ export const SocialMediaItem: EntryListItemFC = ({ entryId, translation }) => {
 
   const asRead = useEntryIsRead(entryId)
   const feed = useFeedById(entry?.feedId)
+
+  const [forceShowTranslation, setForceShowTranslation] = useState(false)
+  const enableTranslation = useGeneralSettingKey("translation")
+  const actionLanguage = useActionLanguage()
+  const targetLanguage = actionLanguage || "en"
+  const translationData = useEntryTranslation({
+    entryId,
+    language: targetLanguage,
+    enabled: enableTranslation || forceShowTranslation,
+  })
+  const translation = translationData || propTranslation
+  const aiSettings = useAISettingValue()
+
+  const handleTranslate = async (e: React.MouseEvent) => {
+    e.stopPropagation()
+    const contentToTranslate = entry.content || entry.description
+    if (!contentToTranslate) return
+    setForceShowTranslation(true)
+    await translationSyncService.translateEntry({
+      entryId,
+      language: targetLanguage,
+      content: contentToTranslate,
+      target: "description",
+      style: "append",
+      tokenConfig: aiSettings.tokenConfiguration,
+    })
+  }
 
   const iconEntry: FeedIconEntry = useMemo(
     () => ({
@@ -127,6 +157,12 @@ export const SocialMediaItem: EntryListItemFC = ({ entryId, translation }) => {
             <span className="text-zinc-500">
               <RelativeTime date={entry.publishedAt} />
             </span>
+            <button
+              onClick={handleTranslate}
+              className="ml-2 text-zinc-500 hover:text-zinc-800"
+            >
+              Translate
+            </button>
           </div>
           <div className={cn("relative mt-1 text-base", isInCollection && "pr-5")}>
             <EntryContentWrapper entryId={entryId}>
@@ -139,9 +175,21 @@ export const SocialMediaItem: EntryListItemFC = ({ entryId, translation }) => {
                 noMedia
                 style={renderStyle}
               >
-                {translation?.content || content}
+                {content}
               </HTML>
             </EntryContentWrapper>
+            {translation?.description && (
+              <div className="mt-2 border-t border-border pt-2 text-secondary-foreground">
+                <HTML
+                  as="div"
+                  className="prose align-middle text-sm leading-relaxed dark:prose-invert prose-blockquote:mt-0"
+                  noMedia
+                  style={renderStyle}
+                >
+                  {translation.description}
+                </HTML>
+              </div>
+            )}
             {isInCollection && <StarIcon className="absolute right-0 top-0" />}
           </div>
         </div>

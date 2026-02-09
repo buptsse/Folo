@@ -4,6 +4,7 @@ import { useEntry } from "@follow/store/entry/hooks"
 import { useFeedById } from "@follow/store/feed/hooks"
 import { useEntryTranslation } from "@follow/store/translation/hooks"
 import { unreadSyncService } from "@follow/store/unread/store"
+import { translationSyncService } from "@follow/store/translation/store"
 import { tracker } from "@follow/tracker"
 import type { ImageSource } from "expo-image"
 import { memo, useCallback } from "react"
@@ -143,6 +144,21 @@ export const EntrySocialItem = memo(
               </NativePressable>
               <Text className="text-secondary-label">·</Text>
               <RelativeDateTime date={publishedAt} className="text-[14px] text-secondary-label" />
+              <NativePressable
+                onPress={(e) => {
+                  e.stopPropagation()
+                  if (!description) return
+                  translationSyncService.translateEntry({
+                    entryId,
+                    language: actionLanguage || "en", // Fallback to en if no action language
+                    content: description,
+                    target: "description",
+                  })
+                }}
+                className="ml-2 flex flex-row items-center justify-center rounded-md bg-secondary/10 px-2 py-0.5"
+              >
+                <Text className="text-xs font-medium text-secondary">Translation</Text>
+              </NativePressable>
             </View>
           </View>
 

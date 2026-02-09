@@ -16,6 +16,7 @@ import {
 import { CertificateCuteFiIcon } from "@/src/icons/certificate_cute_fi"
 import { DatabaseIcon } from "@/src/icons/database"
 import { ExitCuteFiIcon } from "@/src/icons/exit_cute_fi"
+import { LoveCuteFiIcon } from "@/src/icons/love_cute_fi"
 import { Magic2CuteFiIcon } from "@/src/icons/magic_2_cute_fi"
 import { NotificationCuteReIcon } from "@/src/icons/notification_cute_re"
 import { PaletteCuteFiIcon } from "@/src/icons/palette_cute_fi"
@@ -37,10 +38,12 @@ import { AppearanceScreen } from "./routes/Appearance"
 import { DataScreen } from "./routes/Data"
 import { FeedsScreen } from "./routes/Feeds"
 import { GeneralScreen } from "./routes/General"
+import { InvitationsScreen } from "./routes/Invitations"
 import { ListsScreen } from "./routes/Lists"
 import { NotificationsScreen } from "./routes/Notifications"
 import { PlanScreen } from "./routes/Plan"
 import { PrivacyScreen } from "./routes/Privacy"
+import { ReferralScreen } from "./routes/Referral"
 
 interface GroupNavigationLink {
   label: Extract<ParseKeys<"settings">, `titles.${string}`>
@@ -100,7 +103,20 @@ const SettingGroupNavigationLinks: GroupNavigationLink[] = [
   },
 ]
 
-const SubscriptionGroupNavigationLinks: GroupNavigationLink[] = [
+const BetaGroupNavigationLinks: GroupNavigationLink[] = [
+  {
+    label: "titles.invitations",
+    icon: LoveCuteFiIcon,
+    onPress: ({ navigation }) => {
+      navigation.pushControllerView(InvitationsScreen)
+    },
+    iconBackgroundColor: "#EC4899",
+    anonymous: false,
+    hideIf: (serverConfigs) => !serverConfigs?.INVITATION_ENABLED,
+  },
+]
+
+const ReferralGroupNavigationLinks: GroupNavigationLink[] = [
   {
     label: "titles.subscription.short",
     icon: PowerOutlineIcon,
@@ -110,6 +126,16 @@ const SubscriptionGroupNavigationLinks: GroupNavigationLink[] = [
     iconBackgroundColor: accentColor,
     anonymous: false,
     hideIf: (serverConfigs) => !serverConfigs?.PAYMENT_ENABLED,
+  },
+  {
+    label: "titles.referral.short",
+    icon: LoveCuteFiIcon,
+    onPress: ({ navigation }) => {
+      navigation.pushControllerView(ReferralScreen)
+    },
+    iconBackgroundColor: "#EC4899",
+    anonymous: false,
+    hideIf: (serverConfigs) => !serverConfigs?.REFERRAL_ENABLED,
   },
 ]
 
@@ -226,7 +252,8 @@ const NavigationLinkGroup: FC<{
 const navigationGroups = [
   SettingGroupNavigationLinks,
   DataGroupNavigationLinks,
-  SubscriptionGroupNavigationLinks,
+  ReferralGroupNavigationLinks,
+  BetaGroupNavigationLinks,
   PrivacyGroupNavigationLinks,
   ActionGroupNavigationLinks,
 ] as const

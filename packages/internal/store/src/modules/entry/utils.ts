@@ -63,6 +63,7 @@ export function isInboxEntry(entry?: { inboxHandle?: string | null }) {
 export const fallbackReturn: UseEntriesReturn = {
   entriesIds: [],
   hasNext: false,
+  hasUpdate: false,
   refetch: async () => {},
 
   fetchNextPage: async () => {},

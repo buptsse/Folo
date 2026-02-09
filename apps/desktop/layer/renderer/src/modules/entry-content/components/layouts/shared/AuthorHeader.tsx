@@ -13,6 +13,7 @@ interface AuthorHeaderProps {
   className?: string
   showAvatar?: boolean
   avatarSize?: number
+  onTranslate?: (e: React.MouseEvent) => void
 }
 
 export const AuthorHeader: React.FC<AuthorHeaderProps> = ({
@@ -20,6 +21,7 @@ export const AuthorHeader: React.FC<AuthorHeaderProps> = ({
   className,
   showAvatar = true,
   avatarSize = 40,
+  onTranslate,
 }) => {
   const entry = useEntry(entryId, (state) => {
     const { feedId, author, authorAvatar, authorUrl, publishedAt, guid, url } = state
@@ -81,6 +83,11 @@ export const AuthorHeader: React.FC<AuthorHeaderProps> = ({
             </>
           )}
           <RelativeTime date={entry.publishedAt} />
+          {onTranslate && (
+            <button onClick={onTranslate} className="ml-2 hover:text-zinc-800">
+              Translate
+            </button>
+          )}
         </div>
       </div>
     </div>

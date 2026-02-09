@@ -20,6 +20,7 @@ class StoreDbMorph {
   toEntrySchema(entry: EntryModel): EntrySchema {
     return {
       ...entry,
+      tags: entry.tags ?? null,
     }
   }
 }

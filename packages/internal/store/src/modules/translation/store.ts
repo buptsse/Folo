@@ -216,6 +216,129 @@ class TranslationSyncService {
     scheduler: windowScheduler(1000),
   })
 
+  async translateEntry({
+    entryId,
+    language,
+    content,
+    target = "description",
+    style = "append",
+    tokenConfig,
+  }: {
+    entryId: string
+    language: SupportedActionLanguage
+    content: string
+    target?: "description" | "content"
+    style?: "append" | "bilingual_paragraph"
+    tokenConfig?: { apiKey?: string; baseURL?: string; model?: string }
+  }) {
+    console.log("Starting translation for entry:", entryId, "Language:", language, "Style:", style)
+
+    const apiKey = tokenConfig?.apiKey
+    const baseURL = tokenConfig?.baseURL
+    const model = tokenConfig?.model || "deepseek-v3.2"
+
+    if (!apiKey || !baseURL) {
+      console.warn("Missing AI Token Configuration (APK Key or Base URL)")
+      throw new Error("Missing AI Token Configuration. Please configure it in Settings -> AI.")
+    }
+
+    try {
+      // Chunking logic
+      const MAX_CHUNK_SIZE = 2000
+      const chunks: string[] = []
+      let tempContent = content
+
+      while (tempContent.length > 0) {
+        if (tempContent.length <= MAX_CHUNK_SIZE) {
+          chunks.push(tempContent)
+          break
+        }
+        
+        let chunk = tempContent.slice(0, MAX_CHUNK_SIZE)
+        const lastP = chunk.lastIndexOf("</p>")
+        const lastNewline = chunk.lastIndexOf("\n")
+        
+        let splitIndex = MAX_CHUNK_SIZE
+        if (lastP > -1) {
+            splitIndex = lastP + 4
+        } else if (lastNewline > -1) {
+            splitIndex = lastNewline + 1
+        }
+
+        chunks.push(tempContent.slice(0, splitIndex))
+        tempContent = tempContent.slice(splitIndex)
+      }
+
+      console.log(`Split content into ${chunks.length} chunks`)
+      const translatedChunks: string[] = []
+
+      let systemPrompt = `You are a helpful assistant that translates text. Please translate the following content to ${language}.`
+      
+      if (style === "bilingual_paragraph") {
+        systemPrompt += `
+          The user wants a bilingual view. 
+          Please output the translation by appending the translated text after each original paragraph.
+          Maintain the original HTML/Markdown structure. 
+          Format: 
+          <p>Original text</p>
+          <p>Translated text</p>`
+      } else {
+        // Default append style (just return translation)
+        systemPrompt += ` Returns only the translated content.`
+      }
+
+      for (const chunk of chunks) {
+          const response = await fetch(`${baseURL}/chat/completions`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${apiKey}`,
+            },
+            body: JSON.stringify({
+              model: model,
+              max_tokens: 4096,
+              messages: [
+                {
+                  role: "system",
+                  content: systemPrompt,
+                },
+                {
+                  role: "user",
+                  content: chunk,
+                },
+              ],
+              stream: false,
+            }),
+          })
+
+          if (!response.ok) {
+            console.error("API error status:", response.status, response.statusText)
+            throw new Error(`API error: ${response.statusText}`)
+          }
+
+          const data = await response.json()
+          const text = data.choices?.[0]?.message?.content || ""
+          translatedChunks.push(text)
+      }
+
+      const translatedText = translatedChunks.join("\n")
+      console.log("Translation complete")
+
+      await translationActions.upsertMany([
+        {
+          entryId,
+          language,
+          [target]: translatedText,
+        },
+      ])
+
+      return translatedText
+    } catch (error) {
+      console.error("Iflow translation error:", error)
+      throw error
+    }
+  }
+
   async generateTranslation({
     entryId,
     language,

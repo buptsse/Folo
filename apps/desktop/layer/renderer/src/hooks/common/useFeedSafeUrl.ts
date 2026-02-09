@@ -31,12 +31,8 @@ export const useFeedSafeUrl = (entryId: string) => {
     }
 
     if (href.startsWith("http")) {
-      try {
-        const domain = new URL(href).hostname
-        if (domain === "localhost") return null
-      } catch {
-        return null
-      }
+      const domain = new URL(href).hostname
+      if (domain === "localhost") return null
 
       return href
     }

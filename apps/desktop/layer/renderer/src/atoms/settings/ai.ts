@@ -17,6 +17,10 @@ import { getFeature } from "~/hooks/biz/useFeature"
 export interface WebAISettings extends AISettings {
   panelStyle: AIChatPanelStyle
   showSplineButton: boolean
+  tokenConfiguration?: {
+    apiKey?: string
+    baseURL?: string
+  }
 }
 
 type ServerShortcutConfig = ExtractResponseData<GetStatusConfigsResponse>["AI_SHORTCUTS"][number]
@@ -113,6 +117,7 @@ export const createDefaultSettings = (): WebAISettings => ({
   shortcuts: normalizeShortcuts(defaultAISettings.shortcuts),
   panelStyle: AIChatPanelStyle.Floating,
   showSplineButton: true,
+  tokenConfiguration: defaultAISettings.tokenConfiguration,
 })
 
 export const {

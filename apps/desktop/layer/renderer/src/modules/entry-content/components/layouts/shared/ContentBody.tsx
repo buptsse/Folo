@@ -13,6 +13,7 @@ interface ContentBodyProps {
   translation?: {
     content?: string
     title?: string
+    description?: string
   }
 }
 
@@ -35,25 +36,50 @@ export const ContentBody: React.FC<ContentBodyProps> = ({
 
   if (!entry) return null
 
-  const content = translation?.content || entry.content || entry.description
+  const content = entry.content || entry.description
+  const translationContent = translation?.description || translation?.content
 
   if (!content) return null
 
   return (
-    <HTML
-      as="div"
-      className={cn(
-        "prose dark:prose-invert",
-        "prose-blockquote:mt-0",
-        "cursor-auto select-text",
-        readableContentMaxWidthClassName,
-        compact ? "text-sm leading-relaxed" : "text-base leading-relaxed",
-        className,
+    <>
+      <HTML
+        as="div"
+        className={cn(
+          "prose dark:prose-invert",
+          "prose-blockquote:mt-0",
+          "cursor-auto select-text",
+          readableContentMaxWidthClassName,
+          compact ? "text-sm leading-relaxed" : "text-base leading-relaxed",
+          className,
+        )}
+        noMedia={noMedia}
+        style={renderStyle}
+      >
+        {content}
+      </HTML>
+      {translationContent && (
+        <div
+          className={cn(
+            readableContentMaxWidthClassName,
+            "mt-4 border-t border-border pt-4 text-secondary-foreground",
+          )}
+        >
+          <HTML
+            as="div"
+            className={cn(
+              "prose dark:prose-invert",
+              "prose-blockquote:mt-0",
+              "cursor-auto select-text",
+              compact ? "text-sm leading-relaxed" : "text-base leading-relaxed",
+            )}
+            noMedia
+            style={renderStyle}
+          >
+            {translationContent}
+          </HTML>
+        </div>
       )}
-      noMedia={noMedia}
-      style={renderStyle}
-    >
-      {content}
-    </HTML>
+    </>
   )
 }

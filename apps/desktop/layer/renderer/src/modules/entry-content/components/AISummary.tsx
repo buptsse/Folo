@@ -9,6 +9,7 @@ import {
   setAIPanelVisibility,
   useAIChatPanelStyle,
   useAIPanelVisibility,
+  useAISettingValue,
 } from "~/atoms/settings/ai"
 import { useActionLanguage } from "~/atoms/settings/general"
 import { AISummaryCardBase } from "~/components/ui/ai-summary-card"
@@ -24,12 +25,14 @@ export function AISummary({ entryId }: { entryId: string }) {
   // AI Chat panel state
   const aiChatPanelStyle = useAIChatPanelStyle()
   const isAIPanelVisible = useAIPanelVisibility()
+  const aiSettings = useAISettingValue()
 
   const summary = usePrefetchSummary({
     actionLanguage,
     entryId,
     target: isInReadabilitySuccess ? "readabilityContent" : "content",
     enabled: showAISummary,
+    tokenConfig: aiSettings.tokenConfiguration,
   })
 
   // Show Ask AI button when:

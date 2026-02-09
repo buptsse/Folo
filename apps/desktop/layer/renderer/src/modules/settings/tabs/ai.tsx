@@ -7,11 +7,13 @@ import { createDefineSettingItem } from "../helper/builder"
 import { createSettingBuilder } from "../helper/setting-builder"
 import { ByokSection } from "./ai/byok"
 import { MCPServicesSection } from "./ai/mcp/MCPServicesSection"
+import { UserMemorySection } from "./ai/memory"
 import { PanelStyleSection } from "./ai/PanelStyleSection"
 import { PersonalizePromptSection } from "./ai/PersonalizePromptSection"
 import { AIShortcutsSection } from "./ai/shortcuts/AIShortcutsSection"
 import { TaskSchedulingSection } from "./ai/tasks"
 import { UsageAnalysisSection } from "./ai/usage"
+import { TokenConfigurationSection } from "./ai/TokenConfigurationSection"
 
 const SettingBuilder = createSettingBuilder(useAISettingValue)
 const defineSettingItem = createDefineSettingItem("ai", useAISettingValue, setAISetting)
@@ -60,6 +62,12 @@ export const SettingAI = () => {
 
           {
             type: "title",
+            value: t("memories.section.title"),
+          },
+          UserMemorySection,
+
+          {
+            type: "title",
             value: t("tasks.section.title"),
             id: AI_SETTING_SECTION_IDS.tasks,
           },
@@ -70,6 +78,14 @@ export const SettingAI = () => {
             value: t("integration.title"),
           },
           MCPServicesSection,
+
+
+
+          {
+            type: "title",
+            value: "TokenConfiguration",
+          },
+          TokenConfigurationSection,
 
           {
             type: "title",

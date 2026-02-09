@@ -29,16 +29,18 @@ export function usePrefetchSummary({
   entryId,
   target,
   actionLanguage,
+  tokenConfig,
   ...options
 }: {
   entryId: string
   target: "content" | "readabilityContent"
   actionLanguage: SupportedActionLanguage
+  tokenConfig?: { apiKey?: string; baseURL?: string }
 } & GeneralQueryOptions) {
   return useQuery({
-    queryKey: ["summary", entryId, target, actionLanguage],
+    queryKey: ["summary", entryId, target, actionLanguage, tokenConfig],
     queryFn: () => {
-      return summarySyncService.generateSummary({ entryId, target, actionLanguage })
+      return summarySyncService.generateSummary({ entryId, target, actionLanguage, tokenConfig })
     },
     enabled: options?.enabled,
     staleTime: 1000 * 60 * 60 * 24,

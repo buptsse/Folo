@@ -176,6 +176,10 @@ export const defaultAISettings: AISettings = {
     enabled: false,
     providers: [],
   },
+  tokenConfiguration: {
+    apiKey: undefined,
+    baseURL: undefined,
+  },
 }
 
 export const defaultSettings = {

@@ -227,6 +227,13 @@ export interface AISettings {
   autoScrollWhenStreaming: boolean
 
   byok: UserByokSettings
+  tokenConfiguration?: TokenConfiguration
+}
+
+export type TokenConfiguration = {
+  apiKey?: string
+  baseURL?: string
+  model?: string
 }
 
 export type ByokProviderName = "openai" | "google" | "vercel-ai-gateway" | "openrouter"

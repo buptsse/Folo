@@ -1,9 +1,12 @@
 import { MemoedDangerousHTMLStyle } from "@follow/components/common/MemoedDangerousHTMLStyle.js"
+import { Button } from "@follow/components/ui/button/index.js"
 import { FeedViewType } from "@follow/constants"
 import { isOnboardingEntry } from "@follow/store/constants/onboarding"
 import { useEntry } from "@follow/store/entry/hooks"
 import { useFeedById } from "@follow/store/feed/hooks"
 import { useIsInbox } from "@follow/store/inbox/hooks"
+import { useEntryTranslation } from "@follow/store/translation/hooks"
+import { translationSyncService } from "@follow/store/translation/store"
 import { cn } from "@follow/utils"
 import { ErrorBoundary } from "@sentry/react"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
@@ -13,7 +16,10 @@ import {
   setAIPanelVisibility,
   useAIChatPanelStyle,
   useAIPanelVisibility,
+  useAISettingValue,
 } from "~/atoms/settings/ai"
+import { useShowAITranslation } from "~/atoms/ai-translation"
+import { useActionLanguage } from "~/atoms/settings/general"
 import { useUISettingKey } from "~/atoms/settings/ui"
 import { ShadowDOM } from "~/components/common/ShadowDOM"
 import type { TocRef } from "~/components/ui/markdown/components/Toc"
@@ -58,6 +64,47 @@ export const ArticleLayout: React.FC<EntryLayoutProps> = ({
   const { content } = useEntryContent(entryId)
   const customCSS = useUISettingKey("customCSS")
 
+  const actionLanguage = useActionLanguage()
+  const globalShowTranslation = useShowAITranslation()
+  const [forceShowTranslation, setForceShowTranslation] = useState(false)
+
+  const entryTranslation = useEntryTranslation({
+    entryId,
+    language: actionLanguage,
+    enabled: globalShowTranslation || forceShowTranslation,
+  })
+
+  const aiSettings = useAISettingValue()
+
+  // Merge prop translation (from EntryContent) and local hook result
+  const activeTranslation = useMemo(() => {
+    // If we have local translation data, it takes precedence or merges
+    if (entryTranslation) {
+      return {
+        content: entryTranslation.content ?? translation?.content,
+        title: entryTranslation.title ?? translation?.title,
+      }
+    }
+    return translation
+  }, [entryTranslation, translation])
+
+  const handleTranslate = useCallback(
+    async (e: React.MouseEvent) => {
+      e.stopPropagation()
+      if (!content) return
+      setForceShowTranslation(true)
+      await translationSyncService.translateEntry({
+        entryId,
+        language: actionLanguage,
+        content,
+        target: "content",
+        style: "bilingual_paragraph",
+        tokenConfig: aiSettings.tokenConfiguration,
+      })
+    },
+    [entryId, content, actionLanguage],
+  )
+
   const handleTextSelect = useCallback((event: TextSelectionEvent) => {
     setTextSelection(event)
   }, [])
@@ -101,6 +148,13 @@ export const ArticleLayout: React.FC<EntryLayoutProps> = ({
     <div className={cn(readableContentMaxWidthClassName, "mx-auto mt-1 px-4")}>
       <EntryTitle entryId={entryId} compact={compact} containerClassName="mt-12" />
 
+      <div className="mt-4 mb-4">
+        <Button variant="outline" size="sm" onClick={handleTranslate}>
+          <i className="i-mgc-translate-2-line mr-1 text-lg" />
+          Translate
+        </Button>
+      </div>
+
       <ArticleAudioPlayer entryId={entryId} />
 
       {/* Content Type Toggle */}
@@ -137,7 +191,7 @@ export const ArticleLayout: React.FC<EntryLayoutProps> = ({
                   feedId={feed?.id || ""}
                   noMedia={noMedia}
                   content={content}
-                  translation={translation}
+                  translation={activeTranslation}
                 />
               </ShadowDOM>
             )}

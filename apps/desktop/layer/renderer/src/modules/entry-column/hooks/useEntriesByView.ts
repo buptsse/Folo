@@ -25,6 +25,8 @@ import { useGeneralSettingKey } from "~/atoms/settings/general"
 import { ROUTE_FEED_PENDING } from "~/constants/app"
 import { useFeature } from "~/hooks/biz/useFeature"
 import { useRouteParams } from "~/hooks/biz/useRouteParams"
+import { useAuthQuery } from "~/hooks/common"
+import { entries } from "~/queries/entries"
 
 import { aiTimelineEnabledAtom } from "../atoms/ai-timeline"
 import { useIsPreviewFeed } from "./useIsPreviewFeed"
@@ -85,6 +87,27 @@ const useRemoteEntries = (): UseEntriesReturn => {
     }
   }, [query.isFetching])
 
+  const [pauseQuery, setPauseQuery] = useState(false)
+  const hasNewQuery = useAuthQuery(
+    entries.checkNew({
+      ...entriesOptions,
+      fetchedTime: fetchedTime!,
+    }),
+    {
+      refetchInterval: 1000 * 60 * 5,
+      enabled: !!fetchedTime && !pauseQuery,
+      notifyOnChangeProps: ["data"],
+    },
+  )
+  const hasUpdate = useMemo(
+    () => !!(fetchedTime && hasNewQuery?.data?.data?.has_new),
+    [hasNewQuery?.data?.data?.has_new, fetchedTime],
+  )
+
+  useEffect(() => {
+    setPauseQuery(hasUpdate)
+  }, [hasUpdate])
+
   const refetch = useCallback(async () => void query.refetch(), [query])
   const fetchNextPage = useCallback(async () => void query.fetchNextPage(), [query])
 
@@ -94,6 +117,7 @@ const useRemoteEntries = (): UseEntriesReturn => {
   return {
     entriesIds: query.entriesIds,
     hasNext: query.hasNextPage,
+    hasUpdate,
     refetch,
 
     fetchNextPage,
@@ -210,6 +234,7 @@ const useLocalEntries = (): UseEntriesReturn => {
   return {
     entriesIds: entries,
     hasNext,
+    hasUpdate: false,
     refetch,
     fetchNextPage: fetchNextPage as () => Promise<void>,
     isLoading: false,
@@ -287,6 +312,7 @@ export const useEntriesByView = ({ onReset }: { onReset?: () => void }) => {
     ...query,
 
     type: remoteQuery.isReady ? ("remote" as const) : ("local" as const),
+    hasUpdate: query.hasUpdate,
     refetch: useCallback(() => {
       const promise = query.refetch()
       unreadSyncService.resetFromRemote()
